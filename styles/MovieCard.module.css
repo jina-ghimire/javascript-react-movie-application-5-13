@@ -1,0 +1,59 @@
+.card {
+  display: flex;
+  gap: 20px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+.imageContainer {
+  flex: 1;
+  position: relative;
+  height: 225px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.details {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 0 10px 0;
+}
+
+.date,
+.description {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #555;
+}
+.date {
+  color: #827e7e;
+}
+.genres {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.genreTag {
+  background-color: #fff;
+  color: #827e7e;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  border: 1px solid #d9d9d9;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.genreTag:hover {
+  background-color: #d6d6d6;
+}
