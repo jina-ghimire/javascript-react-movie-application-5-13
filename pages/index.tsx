@@ -4,6 +4,7 @@ import styles from '../styles/Layout.module.css';
 import { Movie } from '../types';
 import { Spin, Alert } from 'antd';
 import { useState, useEffect } from 'react';
+import 'antd/dist/reset.css';
 
 export default function Home({
   movies,

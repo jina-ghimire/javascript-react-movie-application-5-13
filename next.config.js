@@ -1,5 +1,15 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+/* eslint-disable @typescript-eslint/no-var-requires */
+const withTM = require('next-transpile-modules')([
+  'antd',
+  '@ant-design/icons',
+  '@ant-design/icons-svg',
+  'rc-pagination',
+  'rc-util',
+  'rc-picker',
+]);
+
+module.exports = withTM({
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
@@ -9,6 +19,13 @@ const nextConfig = {
       },
     ],
   },
-};
-
-module.exports = nextConfig;
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.m?js/,
+      resolve: {
+        fullySpecified: false,
+      },
+    });
+    return config;
+  },
+});
