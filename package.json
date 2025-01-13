@@ -7,15 +7,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "prepare": "husky install"
-    
+    "lint": "next lint"
   },
   "dependencies": {
     "antd": "^5.23.0",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
-    "next": "^13.4.19",
+    "next": "^15.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tmdb-clone": "file:"
@@ -26,6 +24,7 @@
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.50.0",
     "eslint-config-next": "^13.4.19",
     "eslint-config-prettier": "^9.1.0",
