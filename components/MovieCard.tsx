@@ -11,7 +11,7 @@ export default function MovieCard({
   movie: MovieProps;
   onImageLoad: () => void;
 }) {
-  const placeholderGenres = ['Action', 'Drama'];
+  const placeholderGenres = ['Action'];
   const formattedDate = movie.release_date
     ? format(new Date(movie.release_date), 'MMMM d, yyyy')
     : 'Unknown Release Date';
