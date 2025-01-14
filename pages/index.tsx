@@ -1,144 +1,163 @@
 import { GetServerSideProps } from 'next';
+import { useState } from 'react';
+import { Input, Spin, Alert, Pagination } from 'antd';
+import debounce from 'lodash/debounce';
 import MovieCard from '../components/MovieCard';
 import styles from '../styles/Layout.module.css';
 import { Movie } from '../types';
-import { Spin, Alert } from 'antd';
-import { useState, useEffect } from 'react';
 import 'antd/dist/reset.css';
+import React from 'react';
 
 export default function Home({
-  movies,
-  error,
+  initialMovies,
+  initialTotalPages,
 }: {
-  movies: Movie[];
-  error: string | null;
+  initialMovies: Movie[];
+  initialTotalPages: number;
 }) {
-  const [isOffline, setIsOffline] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [imagesLoadedCount, setImagesLoadedCount] = useState(0);
+  const [movies, setMovies] = useState<Movie[]>(initialMovies);
+  const [query, setQuery] = useState<string>(''); // Start with empty input
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Track online/offline status
-  useEffect(() => {
-    const handleOnlineStatus = () => {
-      setIsOffline(!navigator.onLine);
-    };
-
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-
-    setIsOffline(!navigator.onLine);
-
-    return () => {
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
-    };
-  }, []);
-
-  // Mark data as loaded when movies are available
-  useEffect(() => {
-    if (movies.length > 0) {
-      setDataLoaded(true);
+  const fetchMovies = debounce(async (searchQuery: string, page: number) => {
+    console.log(
+      `Fetching movies for query: "${searchQuery}" and page: ${page}`
+    );
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const response = await fetch(
+        `/api/movies?query=${encodeURIComponent(searchQuery)}&page=${page}`
+      );
+      if (!response.ok) {
+        console.error('API response not OK:', response);
+        throw new Error(`Failed to fetch movies: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setMovies(data.movies || []);
+      setTotalPages(data.total_pages || 1);
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      setFetchError('Failed to fetch movies. Please try again later.');
+      setMovies([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [movies]);
+  }, 1000);
 
-  // Fallback timeout to stop spinner if something fails
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.warn('Fallback: Forcing spinner to stop after timeout.');
-      setImagesLoadedCount(movies.length);
-    }, 5000);
-    return () => clearTimeout(timeout);
-  }, [movies.length]);
-
-  const handleImageLoad = () => {
-    setImagesLoadedCount((prev) => prev + 1);
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+    setCurrentPage(1);
+    fetchMovies(value, 1);
   };
 
-  const isLoading = !dataLoaded || imagesLoadedCount < movies.length;
-
-  if (isLoading) {
-    return (
-      <div className={styles.loading}>
-        <Spin tip="Loading movies..." size="large" />
-      </div>
-    );
-  }
-
-  if (isOffline) {
-    return (
-      <div className={styles.error}>
-        <Alert
-          message="No Internet Connection"
-          description="Please check your network and try again."
-          type="error"
-          showIcon
-        />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.error}>
-        <Alert message="Error" description={error} type="error" showIcon />
-      </div>
-    );
-  }
-
-  if (!movies || movies.length === 0) {
-    return (
-      <div className={styles.noMovies}>
-        <Alert
-          message="No Movies Found"
-          description="No movies match your search."
-          type="info"
-          showIcon
-        />
-      </div>
-    );
-  }
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchMovies(query, page);
+  };
 
   return (
     <div className={styles.container}>
-      <div className={styles.grid}>
-        {movies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            onImageLoad={handleImageLoad}
+      <Input
+        placeholder="Search movies..."
+        value={query}
+        onChange={handleSearch}
+        className={styles.searchBar}
+      />
+      {isLoading ? (
+        <div className={styles.loading}>
+          <Spin tip="Loading movies..." size="large" />
+        </div>
+      ) : fetchError ? (
+        <div className={styles.error}>
+          <Alert
+            message="Error"
+            description={fetchError}
+            type="error"
+            showIcon
           />
-        ))}
-      </div>
+        </div>
+      ) : movies.length === 0 ? (
+        <div className={styles.noMovies}>
+          <Alert
+            message="No Movies Found"
+            description="Try a different search term."
+            type="info"
+            showIcon
+          />
+        </div>
+      ) : (
+        <>
+          <div className={styles.grid}>
+            {movies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} onImageLoad={() => {}} />
+            ))}
+          </div>
+          <Pagination
+            current={currentPage}
+            total={totalPages * 10}
+            onChange={handlePageChange}
+            pageSize={10}
+            className={styles.pagination}
+          />
+        </>
+      )}
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
   const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+  const query = context.query.query || ''; // Empty query by default
+  const page = parseInt(context.query.page as string) || 1;
 
   if (!API_KEY) {
     return {
       props: {
-        movies: [],
+        initialMovies: [],
+        initialTotalPages: 0,
         error: 'API key is missing. Check your .env.local configuration.',
       },
     };
   }
 
   try {
-    const response = await fetch(
-      `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=return`
-    );
+    let tmdbUrl = '';
+
+    if (query === '') {
+      // Fetch popular movies if no search query
+      tmdbUrl = `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&page=${page}`;
+    } else {
+      // Fetch movies based on the search query
+      tmdbUrl = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${query}&page=${page}`;
+    }
+
+    const response = await fetch(tmdbUrl);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch movies: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return { props: { movies: data.results || [], error: null } };
+    return {
+      props: {
+        initialMovies: data.results || [],
+        initialTotalPages: data.total_pages || 0,
+        error: null,
+      },
+    };
   } catch (err: unknown) {
     const errorMessage =
       err instanceof Error ? err.message : 'An unknown error occurred';
-    return { props: { movies: [], error: errorMessage } };
+    return {
+      props: {
+        initialMovies: [],
+        initialTotalPages: 0,
+        error: errorMessage,
+      },
+    };
   }
 };

@@ -14,6 +14,7 @@
     "antd": "^5.23.1",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
+    "lodash": "^4.17.21",
     "next": "^15.1.4",
     "rc-pagination": "^5.0.0",
     "rc-picker": "^4.9.2",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",
+    "@types/lodash": "^4.17.14",
     "@types/node": "^20.8.0",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",

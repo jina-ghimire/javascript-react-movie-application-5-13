@@ -6,6 +6,7 @@ const withTM = require('next-transpile-modules')([
   'rc-pagination',
   'rc-util',
   'rc-picker',
+  'rc-input',
 ]);
 
 module.exports = withTM({
