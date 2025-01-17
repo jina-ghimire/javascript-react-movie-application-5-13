@@ -12,10 +12,23 @@ export interface Movie {
   title: string;
   video: boolean;
   vote_average: number;
+  rating?: number;
   vote_count: number;
+  user_rating?: number; // Optional user rating
+}
+export interface RatedMovie extends Movie {
+  rating: number;
 }
 
+// Add 'id' to MovieProps
 export type MovieProps = Pick<
   Movie,
-  'title' | 'overview' | 'poster_path' | 'release_date' | 'genre_ids'
+  | 'id'
+  | 'title'
+  | 'overview'
+  | 'poster_path'
+  | 'release_date'
+  | 'genre_ids'
+  | 'vote_average'
+  | 'user_rating'
 >;

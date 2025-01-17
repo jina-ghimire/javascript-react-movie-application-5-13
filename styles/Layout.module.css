@@ -49,3 +49,41 @@
   justify-content: center;
   margin-top: 20px;
 }
+.ant-tabs-nav {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.ant-tabs-tab {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #1890ff;
+}
+
+.ant-tabs-ink-bar {
+  background-color: #1890ff;
+}
+
+/* Search Bar Styling */
+.searchBar {
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto; /* Center the search bar */
+}
+
+/* Adjustments for Grid Responsiveness */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(
+      1,
+      1fr
+    ); /* Single column for smaller screens */
+  }
+}

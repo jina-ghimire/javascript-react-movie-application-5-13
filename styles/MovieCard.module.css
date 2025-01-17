@@ -11,6 +11,7 @@
 .imageContainer {
   flex: 1;
   position: relative;
+  width: 100%;
   height: 225px;
   border-radius: 8px;
   overflow: hidden;
@@ -19,6 +20,7 @@
 .details {
   flex: 2;
   display: flex;
+  position: relative;
   flex-direction: column;
 }
 .title {
@@ -43,7 +45,7 @@
   margin: 8px 0;
 }
 
-.genreTag {
+.genre {
   background-color: #fff;
   color: #827e7e;
   padding: 4px 8px;
@@ -56,4 +58,55 @@
 
 .genreTag:hover {
   background-color: #d6d6d6;
+}
+
+/* Star Ratings */
+.ant-rate {
+  font-size: 18px;
+  color: #ffcc00;
+  transition: color 0.3s ease;
+}
+
+.ant-rate-star:hover {
+  color: #ff9900;
+}
+/* Rating Section */
+.ratingSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+/* Rating Circle */
+.ratingCircle {
+  position: absolute;
+  top: 10px; /* Adjust to position it inside the top corner */
+  right: 10px; /* Adjust to position it inside the right corner */
+  width: 40px; /* Size of the circle */
+  height: 40px;
+  border-radius: 50%; /* Make it a circle */
+  color: white; /* Text color */
+  background-color: #e0e0e0; /* Default color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for depth */
+  z-index: 10; /* Ensure it appears above the image */
+  border: 2px solid white; /* Optional: Add a border for better visibility */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .card {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .imageContainer {
+    width: 100%;
+    height: 200px;
+  }
 }
