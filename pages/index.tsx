@@ -1,14 +1,13 @@
 import { GetServerSideProps } from 'next';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { Input, Spin, Alert, Pagination, Tabs } from 'antd';
 import debounce from 'lodash/debounce';
 import MovieCard from '../components/MovieCard';
 import styles from '../styles/Layout.module.css';
-import { Movie } from '../types';
-import { RatedMovie } from '../types';
-import 'antd/dist/reset.css';
-import React from 'react';
 import { useGuestSession } from '../contexts/GuestSessionContext';
+import { useMovieContext } from '../contexts/MovieContext';
+import { Movie } from '../types';
+import 'antd/dist/reset.css';
 
 export default function Home({
   initialMovies,
@@ -17,28 +16,25 @@ export default function Home({
   initialMovies: Movie[];
   initialTotalPages: number;
 }) {
-  const [movies, setMovies] = useState<Movie[]>(initialMovies);
-  const [ratedMovies, setRatedMovies] = useState<Movie[]>([]);
-  const [query, setQuery] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
-  const [isLoadingSearch, setIsLoadingSearch] = useState<boolean>(false);
-  const [isLoadingRated, setIsLoadingRated] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [ratedError, setRatedError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('1');
+  const { state, dispatch } = useMovieContext();
+  const { movies, ratedMovies, query, currentPage, totalPages, activeTab } =
+    state;
   const guestSessionId = useGuestSession();
+  const [isLoadingMovies, setIsLoadingMovies] = useState(false);
+  const [isLoadingRatedMovies, setIsLoadingRatedMovies] = useState(false);
+
+  // Set initial state from server-side props
+  useEffect(() => {
+    dispatch({ type: 'SET_MOVIES', payload: initialMovies });
+    dispatch({ type: 'SET_TOTAL_PAGES', payload: initialTotalPages });
+  }, [initialMovies, initialTotalPages, dispatch]);
 
   // Debounced fetch for search movies
   const debouncedFetchMovies = useMemo(
     () =>
       debounce(async (searchQuery: string, page: number) => {
-        console.log(
-          `Fetching movies for query: "${searchQuery}" on page: ${page}`
-        );
-        setIsLoadingSearch(true);
-        setFetchError(null);
-
+        setIsLoadingMovies(true);
+        dispatch({ type: 'SET_MOVIES', payload: [] });
         try {
           const endpoint = searchQuery
             ? `/api/movies?query=${encodeURIComponent(searchQuery)}&page=${page}`
@@ -50,27 +46,23 @@ export default function Home({
           }
 
           const data = await response.json();
-          console.log('Fetched Movies:', data);
-          setMovies(data.movies || []);
-          setTotalPages(data.total_pages || 1);
+          dispatch({ type: 'SET_MOVIES', payload: data.movies || [] });
+          dispatch({ type: 'SET_TOTAL_PAGES', payload: data.total_pages || 1 });
         } catch (error) {
           console.error('Error fetching movies:', error);
-          setFetchError('Failed to fetch movies. Please try again later.');
-          setMovies([]);
+          dispatch({ type: 'SET_MOVIES', payload: [] });
         } finally {
-          setIsLoadingSearch(false);
+          setIsLoadingMovies(false);
         }
       }, 500),
-    []
+    [dispatch]
   );
 
+  // Fetch rated movies
   const fetchRatedMovies = useCallback(async () => {
     if (!guestSessionId) return;
 
-    console.log('Fetching rated movies...');
-    setIsLoadingRated(true);
-    setRatedError(null);
-
+    setIsLoadingRatedMovies(true);
     try {
       const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const response = await fetch(
@@ -79,113 +71,89 @@ export default function Home({
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn('No rated movies found for this guest session.');
-          setRatedMovies([]);
+          dispatch({ type: 'SET_RATED_MOVIES', payload: [] });
           return;
         }
         throw new Error(`Failed to fetch rated movies: ${response.statusText}`);
       }
 
       const data = await response.json();
+      const ratedMovies = data.results.map((movie: Movie) => ({
+        ...movie,
+        user_rating: movie.rating, // Use user rating from API
+      }));
 
-      // Use RatedMovie type here
-      const fetchedRatedMovies: RatedMovie[] = data.results.map(
-        (movie: RatedMovie) => ({
-          ...movie,
-          user_rating: movie.rating, // Map the API's rating to user_rating
-        })
-      );
-
-      console.log('Fetched Rated Movies:', fetchedRatedMovies);
-
-      setRatedMovies((prev) => {
-        const mergedMovies = [...prev];
-        fetchedRatedMovies.forEach((fetchedMovie) => {
-          const existingIndex = mergedMovies.findIndex(
-            (movie) => movie.id === fetchedMovie.id
-          );
-          if (existingIndex !== -1) {
-            mergedMovies[existingIndex] = fetchedMovie;
-          } else {
-            mergedMovies.push(fetchedMovie);
-          }
-        });
-        return mergedMovies;
-      });
+      dispatch({ type: 'SET_RATED_MOVIES', payload: ratedMovies });
     } catch (error) {
       console.error('Error fetching rated movies:', error);
-      setRatedError('Failed to fetch rated movies. Please try again later.');
     } finally {
-      setIsLoadingRated(false);
+      setIsLoadingRatedMovies(false);
     }
-  }, [guestSessionId]);
+  }, [guestSessionId, dispatch]);
 
+  // Handle rating update
   const handleRate = (movieId: number, rating: number) => {
     if (!guestSessionId) return;
 
-    console.log(`Rating movie ID ${movieId} with ${rating} stars.`);
+    const movieToUpdate =
+      movies.find((movie) => movie.id === movieId) ||
+      ratedMovies.find((movie) => movie.id === movieId);
 
-    // Update local movies state
-    setMovies((prev) =>
-      prev.map((movie) =>
-        movie.id === movieId ? { ...movie, user_rating: rating } : movie
-      )
-    );
+    if (!movieToUpdate) return;
 
-    // Update local ratedMovies state
-    setRatedMovies((prev) => {
-      const existingMovie = prev.find((movie) => movie.id === movieId);
-      const movieToUpdate =
-        existingMovie || movies.find((movie) => movie.id === movieId);
+    const updatedMovie = { ...movieToUpdate, user_rating: rating };
 
-      if (!movieToUpdate) return prev;
-
-      const updatedMovie = { ...movieToUpdate, user_rating: rating };
-
-      return existingMovie
-        ? prev.map((movie) => (movie.id === movieId ? updatedMovie : movie))
-        : [...prev, updatedMovie];
+    // Update movies in search tab
+    dispatch({
+      type: 'SET_MOVIES',
+      payload: movies.map((movie) =>
+        movie.id === movieId
+          ? rating === 0
+            ? { ...movie, user_rating: undefined } // Reset to original rating
+            : updatedMovie
+          : movie
+      ),
     });
+
+    // Update ratedMovies
+    const updatedRatedMovies = rating
+      ? [...ratedMovies.filter((m) => m.id !== movieId), updatedMovie]
+      : ratedMovies.filter((m) => m.id !== movieId); // Remove if rating is 0
+
+    dispatch({ type: 'SET_RATED_MOVIES', payload: updatedRatedMovies });
 
     // Submit the rating to the API
     const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${movieId}/rating?api_key=${API_KEY}&guest_session_id=${guestSessionId}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: rating * 2 }), // TMDB uses a 10-point scale
-      }
-    )
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to submit rating.');
-        return res.json();
-      })
-      .then((data) => {
-        console.log('Rating submitted successfully:', data);
-      })
-      .catch((error) => {
-        console.error('Error submitting rating:', error);
-      });
+    if (rating === 0) {
+      // DELETE request to remove the rating
+      fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}/rating?api_key=${API_KEY}&guest_session_id=${guestSessionId}`,
+        { method: 'DELETE' }
+      ).catch((error) => console.error('Error removing rating:', error));
+    } else {
+      // POST request to submit the rating
+      fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}/rating?api_key=${API_KEY}&guest_session_id=${guestSessionId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: rating * 2 }), // TMDB uses a 10-point scale
+        }
+      ).catch((error) => console.error('Error submitting rating:', error));
+    }
   };
 
   useEffect(() => {
     if (!query) {
-      console.log('Fetching popular movies...');
       debouncedFetchMovies('', 1);
     }
   }, [debouncedFetchMovies, query]);
 
   useEffect(() => {
     if (activeTab === '2' && guestSessionId) {
-      console.log('Switching to Rated tab...');
       fetchRatedMovies();
     }
   }, [activeTab, guestSessionId, fetchRatedMovies]);
-
-  useEffect(() => {
-    console.log('Current Rated Movies:', ratedMovies);
-  }, [ratedMovies]);
 
   const tabItems = [
     {
@@ -197,16 +165,20 @@ export default function Home({
             placeholder="Search movies..."
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
-              setCurrentPage(1);
+              dispatch({ type: 'SET_QUERY', payload: e.target.value });
+              dispatch({ type: 'SET_CURRENT_PAGE', payload: 1 });
               debouncedFetchMovies(e.target.value, 1);
             }}
             className={styles.searchBar}
           />
-          {isLoadingSearch ? (
+          {isLoadingMovies ? (
             <Spin tip="Loading movies..." />
-          ) : fetchError ? (
-            <Alert message="Error" description={fetchError} type="error" />
+          ) : movies.length === 0 && query ? (
+            <Alert
+              message="No movies found for your search."
+              type="info"
+              showIcon
+            />
           ) : (
             <div className={styles.grid}>
               {movies.map((movie) => (
@@ -224,7 +196,7 @@ export default function Home({
             current={currentPage}
             total={totalPages * 10}
             onChange={(page) => {
-              setCurrentPage(page);
+              dispatch({ type: 'SET_CURRENT_PAGE', payload: page });
               debouncedFetchMovies(query, page);
             }}
           />
@@ -236,12 +208,10 @@ export default function Home({
       label: 'Rated',
       children: (
         <div className={styles.container}>
-          {isLoadingRated ? (
+          {isLoadingRatedMovies ? (
             <Spin tip="Loading rated movies..." />
-          ) : ratedError ? (
-            <Alert message="Error" description={ratedError} type="error" />
           ) : ratedMovies.length === 0 ? (
-            <p>No movies have been rated yet. Start rating movies!</p>
+            <Alert message="No rated movies yet." type="info" showIcon />
           ) : (
             <div className={styles.grid}>
               {ratedMovies.map((movie) => (
@@ -259,7 +229,12 @@ export default function Home({
     },
   ];
 
-  return <Tabs items={tabItems} onChange={(key) => setActiveTab(key)} />;
+  return (
+    <Tabs
+      items={tabItems}
+      onChange={(key) => dispatch({ type: 'SET_ACTIVE_TAB', payload: key })}
+    />
+  );
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {

@@ -18,6 +18,7 @@ export default function MovieCard({
 }) {
   const genres = useGenres(); // Get genres as Record<number, string>
 
+  // Function to determine the rating circle's color
   const getRatingColor = (rating: number) => {
     if (rating >= 7) return '#66E900';
     if (rating >= 5) return '#E9D100';
@@ -28,14 +29,16 @@ export default function MovieCard({
   const formattedDate = movie.release_date
     ? format(new Date(movie.release_date), 'MMMM d, yyyy')
     : 'Unknown Release Date';
+
   return (
     <div className={styles.card}>
+      {/* Movie Poster */}
       <div className={styles.imageContainer}>
         <Image
           src={
             movie.poster_path
               ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-              : '/images/return.png'
+              : '/images/return.png' // Placeholder image
           }
           alt={movie.title}
           fill
@@ -45,7 +48,10 @@ export default function MovieCard({
           onError={onImageLoad}
         />
       </div>
+
+      {/* Movie Details */}
       <div className={styles.details}>
+        {/* Rating Circle */}
         <div
           className={styles.ratingCircle}
           style={{
@@ -58,8 +64,14 @@ export default function MovieCard({
             movie.vote_average?.toFixed(1) ||
             '-'}
         </div>
+
+        {/* Movie Title */}
         <h2 className={styles.title}>{movie.title}</h2>
+
+        {/* Release Date */}
         <p className={styles.date}>{formattedDate}</p>
+
+        {/* Genres */}
         <div className={styles.genres}>
           {movie.genre_ids?.map(
             (id) =>
@@ -70,11 +82,15 @@ export default function MovieCard({
               )
           )}
         </div>
+
+        {/* Rating Component */}
         <Rate
           allowHalf
-          value={movie.user_rating || 0}
-          onChange={(value) => onRate(movie.id, value)}
+          value={movie.user_rating || 0} // Use user's rating or default to 0
+          onChange={(value) => onRate(movie.id, value)} // Pass rating changes to handler
         />
+
+        {/* Movie Description */}
         <p className={styles.description}>
           {truncateText(movie.overview || 'No description available.', 150)}
         </p>

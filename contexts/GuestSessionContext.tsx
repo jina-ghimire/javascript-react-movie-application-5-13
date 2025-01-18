@@ -11,13 +11,12 @@ export const GuestSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     const initializeGuestSession = async () => {
       try {
         const storedSessionId = localStorage.getItem('guest_session_id');
-        if (storedSessionId) {
-          console.log('Using existing guest session:', storedSessionId);
-          setGuestSessionId(storedSessionId);
-          return;
+        if (storedSessionId && storedSessionId === guestSessionId) {
+          console.log('Reusing existing guest session:', storedSessionId);
+          return; // Avoid reinitializing the session
         }
 
-        // Create a new session if none exists
+        // Create a new session only if no valid session exists
         const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
         if (!API_KEY) {
           throw new Error(
@@ -50,7 +49,7 @@ export const GuestSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     if (!guestSessionId) {
-      initializeGuestSession(); // Only initialize if no session exists
+      initializeGuestSession();
     }
   }, [guestSessionId]);
 

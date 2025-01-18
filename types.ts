@@ -14,7 +14,7 @@ export interface Movie {
   vote_average: number;
   rating?: number;
   vote_count: number;
-  user_rating?: number; // Optional user rating
+  user_rating?: number | null; // Optional user rating
 }
 export interface RatedMovie extends Movie {
   rating: number;
